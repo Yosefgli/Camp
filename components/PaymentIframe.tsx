@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { formatILS } from '@/lib/pricing'
 import { NEDARIM_IFRAME_URL } from '@/lib/payments/nedarimPlus'
 import type { NedarimPostMessagePayload } from '@/lib/payments/nedarimPlus'
 
@@ -21,6 +20,12 @@ interface TransactionResult {
   Message?: string
 }
 
+function splitName(full: string): [string, string] {
+  const parts = full.trim().split(/\s+/)
+  if (parts.length === 1) return [parts[0], '']
+  return [parts[0], parts.slice(1).join(' ')]
+}
+
 export default function PaymentIframe({ registrationId, amountILS, parentName }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeHeight, setIframeHeight] = useState(0)
@@ -29,6 +34,11 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
   const [paying, setPaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [payError, setPayError] = useState<string | null>(null)
+
+  const [first, last] = splitName(parentName)
+  const [firstName, setFirstName] = useState(first)
+  const [lastName, setLastName] = useState(last)
+  const [zeout, setZeout] = useState('')
 
   useEffect(() => {
     async function initPayment() {
@@ -89,10 +99,11 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
 
   function handlePay() {
     if (!payload || !iframeRef.current?.contentWindow) return
+    if (!zeout.trim()) { setPayError('נא להזין תעודת זהות'); return }
     setPayError(null)
     setPaying(true)
     iframeRef.current.contentWindow.postMessage(
-      { Name: 'FinishTransaction2', Value: payload },
+      { Name: 'FinishTransaction2', Value: { ...payload, Zeout: zeout.trim(), FirstName: firstName, LastName: lastName } },
       'https://www.matara.pro',
     )
   }
@@ -119,9 +130,41 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-100">
-        <span className="text-sm text-gray-600">סכום לתשלום</span>
-        <span className="text-xl font-bold text-primary-700">{formatILS(amountILS)}</span>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-gray-600">שם פרטי</label>
+          <input
+            type="text"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-gray-600">שם משפחה</label>
+          <input
+            type="text"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-sm text-gray-600">
+          תעודת זהות <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="\d{9}"
+          maxLength={9}
+          placeholder="9 ספרות"
+          value={zeout}
+          onChange={e => setZeout(e.target.value.replace(/\D/g, ''))}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+        />
       </div>
 
       <div className="rounded-xl border border-gray-200 shadow overflow-hidden">

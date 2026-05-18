@@ -5,3 +5,4 @@
  — תיקון PaymentIframe: פרוטוקול postMessage תוקן לפי תיעוד נדרים — GetHeight/FinishTransaction2/TransactionResponse, הוסף כפתור 'בצע תשלום' בדף ההורה
 2026-05-18 — תיקון PaymentIframe: פרוטוקול postMessage תוקן לפי תיעוד נדרים — GetHeight/FinishTransaction2/TransactionResponse, הוסף כפתור 'בצע תשלום' בדף ההורה
 - [2026-05-18] הוספת קוד קופון 770 בדף סיכום — מחיל הנחה לתשלום של ₪1 בלבד, כולל עדכון פירוט עלות ו-iframe נדרים פלוס
+2026-05-18: PaymentIframe — הוספת שדה תעודת זהות (Zeout) ושדות שם עריכה, הסרת הצגת הסכום מהדף
