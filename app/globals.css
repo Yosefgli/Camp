@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    direction: rtl;
+    font-family: 'Noto Sans Hebrew', Arial, sans-serif;
+  }
+
+  body {
+    @apply bg-camp-bg text-gray-800 antialiased;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  .form-card {
+    @apply bg-white rounded-2xl shadow-lg border border-camp-border p-6 md:p-8;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-right
+           text-gray-800 placeholder-gray-400 shadow-sm transition
+           focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200
+           disabled:bg-gray-50 disabled:text-gray-400;
+  }
+
+  .input-label {
+    @apply block mb-1.5 text-sm font-semibold text-gray-700;
+  }
+
+  .input-error {
+    @apply mt-1 text-sm text-red-600;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3
+           text-base font-semibold text-white shadow-md transition
+           hover:bg-primary-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary-200
+           px-6 py-3 text-base font-semibold text-primary-700 transition
+           hover:bg-primary-50 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2
+           text-sm font-medium text-gray-500 transition hover:bg-gray-100;
+  }
+
+  .section-title {
+    @apply text-xl font-bold text-primary-700 mb-4;
+  }
+
+  .step-badge {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-full
+           bg-primary-600 text-white text-sm font-bold;
+  }
+}
