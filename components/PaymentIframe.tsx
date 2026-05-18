@@ -67,7 +67,9 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
 
       if (data.Ask === 'SizeOf') {
         const width = iframeRef.current?.offsetWidth ?? window.innerWidth
-        const height = window.innerHeight
+        // Tell Nedarim Plus a compact height so the form renders with the submit
+        // button visible right after the fields, not stretched to fill the viewport.
+        const height = 500
         iframeRef.current?.contentWindow?.postMessage(
           JSON.stringify({ Width: width, Height: height }),
           'https://www.matara.pro',
