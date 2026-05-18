@@ -59,7 +59,7 @@ export function buildNedarimPostMessage(params: NedarimPaymentParams): NedarimPo
     Comment: 'קייטנה 2025',
     Param1: params.registrationId,
     Param2: '',
-    CallBack: params.callbackUrl,
+    CallBack: `${params.callbackUrl}?rid=${encodeURIComponent(params.registrationId)}`,
     CallBackMailError: '',
   }
 }

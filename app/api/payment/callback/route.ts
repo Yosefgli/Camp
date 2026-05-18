@@ -32,8 +32,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
   }
 
-  // Registration ID is passed via Param1 (as per Nedarim Plus docs)
-  const registrationId = payload.Param1 ?? payload.param1 ?? ''
+  // Registration ID is embedded in the callback URL (?rid=...) because Nedarim Plus
+  // truncates Param1 to 8 characters, which is shorter than an Airtable record ID.
+  const registrationId =
+    req.nextUrl.searchParams.get('rid') ??
+    payload.Param1 ??
+    payload.param1 ??
+    ''
   if (!registrationId) {
     return NextResponse.json({ error: 'Missing registration ID' }, { status: 400 })
   }
