@@ -17,6 +17,7 @@ interface NedarimMessage {
   TransactionId?: string
   Amount?: string
   Error?: string
+  Ask?: string
 }
 
 export default function PaymentIframe({ registrationId, amountILS, parentName }: Props) {
@@ -61,6 +62,16 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
           ? (JSON.parse(event.data) as NedarimMessage)
           : (event.data as NedarimMessage)
       } catch {
+        return
+      }
+
+      if (data.Ask === 'SizeOf') {
+        const width = iframeRef.current?.offsetWidth ?? window.innerWidth
+        const height = window.innerHeight
+        iframeRef.current?.contentWindow?.postMessage(
+          JSON.stringify({ Width: width, Height: height }),
+          'https://www.matara.pro',
+        )
         return
       }
 
