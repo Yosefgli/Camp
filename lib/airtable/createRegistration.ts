@@ -101,15 +101,6 @@ export async function createRegistration(
 
   const parentRecord = await airtableCreate(TABLES.PARENTS, parentFields)
 
-  // 3. Link children back to parent
-  for (const childId of childRecordIds) {
-    await airtableCreate(TABLES.CHILDREN, {
-      // We use a separate PATCH — but since we just created and can't patch inline here,
-      // the link is already set via PARENT_LINK in child creation above only if we add it.
-      // Actually the parent → children link sets the reverse automatically in Airtable.
-    }).catch(() => null) // No-op here; Airtable sets the reverse link automatically
-  }
-
   return {
     parentRecordId: parentRecord.id,
     totalAmount: costBreakdown.total,
