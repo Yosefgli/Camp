@@ -1,54 +1,33 @@
-import crypto from 'crypto'
+import { NextRequest } from 'next/server'
 import { PaymentVerificationError } from '../errors'
 
+const NEDARIM_CALLBACK_IP = '18.194.219.73'
+
 export interface NedarimCallbackPayload {
-  mosadID: string
-  sum: string
-  zeout: string
-  statusCode: string
-  transactionId: string
-  [key: string]: string
+  Param1?: string
+  param1?: string
+  TransactionId?: string
+  transactionId?: string
+  Amount?: string
+  amount?: string
+  StatusCode?: string
+  statusCode?: string
+  [key: string]: string | undefined
 }
 
-// Verifies the Nedarim Plus callback using HMAC-SHA256.
-// Update this function once Nedarim Plus provides their exact algorithm.
-export function verifyNedarimCallback(payload: NedarimCallbackPayload, rawBody: string): void {
-  const secret = process.env.NEDARIM_SECRET
-  if (!secret) {
-    // If no secret is configured, skip verification (development only)
-    if (process.env.NODE_ENV !== 'production') return
-    throw new PaymentVerificationError('NEDARIM_SECRET is not configured')
-  }
+// Nedarim Plus authenticates callbacks by IP — verify the request comes from their server.
+export function verifyNedarimCallback(req: NextRequest): void {
+  if (process.env.NODE_ENV !== 'production') return
 
-  // Nedarim Plus uses a signature field in the payload — verify against it
-  const receivedSig = payload['signature'] ?? payload['sig'] ?? ''
-  if (!receivedSig) {
-    // Some Nedarim Plus integrations don't send a signature in the body.
-    // In that case, verify mosadID matches our terminal.
-    const expectedTerminal = process.env.NEDARIM_TERMINAL_ID
-    if (expectedTerminal && payload.mosadID !== expectedTerminal) {
-      throw new PaymentVerificationError('Terminal ID mismatch')
-    }
-    return
-  }
+  const forwarded = req.headers.get('x-forwarded-for')
+  const ip = forwarded ? forwarded.split(',')[0].trim() : (req.headers.get('x-real-ip') ?? '')
 
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex')
-
-  const expectedBuf = Buffer.from(expected, 'utf8')
-  const receivedBuf = Buffer.from(receivedSig, 'utf8')
-
-  if (
-    expectedBuf.length !== receivedBuf.length ||
-    !crypto.timingSafeEqual(expectedBuf, receivedBuf)
-  ) {
-    throw new PaymentVerificationError('Callback signature mismatch')
+  if (ip !== NEDARIM_CALLBACK_IP) {
+    throw new PaymentVerificationError(`Invalid callback IP: ${ip}`)
   }
 }
 
 export function isPaymentApproved(payload: NedarimCallbackPayload): boolean {
-  // StatusCode 0 or '0' = approved in Nedarim Plus
-  return payload.statusCode === '0' || payload.statusCode === 'approved'
+  const code = payload.StatusCode ?? payload.statusCode ?? ''
+  return code === '0' || code === 'approved'
 }

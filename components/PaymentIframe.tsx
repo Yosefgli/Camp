@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { formatILS } from '@/lib/pricing'
+import { NEDARIM_IFRAME_URL } from '@/lib/payments/nedarimPlus'
+import type { NedarimPostMessagePayload } from '@/lib/payments/nedarimPlus'
 
 interface Props {
   registrationId: string
@@ -9,11 +11,22 @@ interface Props {
   parentName: string
 }
 
+interface NedarimMessage {
+  height?: number | string
+  StatusCode?: string
+  TransactionId?: string
+  Amount?: string
+  Error?: string
+}
+
 export default function PaymentIframe({ registrationId, amountILS, parentName }: Props) {
-  const [iframeUrl, setIframeUrl] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [iframeHeight, setIframeHeight] = useState(500)
+  const [payload, setPayload] = useState<NedarimPostMessagePayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Fetch PostMessage payload from server so ApiValid never touches client source
   useEffect(() => {
     async function initPayment() {
       try {
@@ -22,11 +35,11 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ registrationId, amountILS, parentName }),
         })
-        const data = (await res.json()) as { iframeUrl?: string; error?: string }
-        if (!res.ok || !data.iframeUrl) {
+        const data = (await res.json()) as { payload?: NedarimPostMessagePayload; error?: string }
+        if (!res.ok || !data.payload) {
           setError(data.error ?? 'שגיאה באתחול התשלום')
         } else {
-          setIframeUrl(data.iframeUrl)
+          setPayload(data.payload)
         }
       } catch {
         setError('שגיאה בחיבור לשירות התשלום')
@@ -36,6 +49,46 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
     }
     void initPayment()
   }, [registrationId, amountILS, parentName])
+
+  // Listen for height updates and payment results from Nedarim Plus iframe
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== 'https://www.matara.pro') return
+
+      let data: NedarimMessage
+      try {
+        data = typeof event.data === 'string'
+          ? (JSON.parse(event.data) as NedarimMessage)
+          : (event.data as NedarimMessage)
+      } catch {
+        return
+      }
+
+      if (data.height) {
+        setIframeHeight(Number(data.height))
+      }
+
+      if (data.StatusCode !== undefined) {
+        if (data.StatusCode === '0') {
+          window.location.href = `/success?id=${registrationId}`
+        } else {
+          setError('התשלום נכשל. אנא נסו שנית או פנו אלינו.')
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [registrationId])
+
+  // After iframe loads, send the payment data via PostMessage
+  function handleIframeLoad() {
+    if (!payload || !iframeRef.current?.contentWindow) return
+    iframeRef.current.contentWindow.postMessage(
+      JSON.stringify(payload),
+      'https://www.matara.pro',
+    )
+  }
 
   if (loading) {
     return (
@@ -66,11 +119,12 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
 
       <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow">
         <iframe
-          src={iframeUrl!}
+          ref={iframeRef}
+          src={NEDARIM_IFRAME_URL}
           title="עמוד תשלום"
           className="w-full"
-          style={{ height: '520px', border: 'none' }}
-          allow="payment"
+          style={{ height: `${iframeHeight}px`, border: 'none' }}
+          onLoad={handleIframeLoad}
         />
       </div>
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { buildNedarimPaymentUrl } from '@/lib/payments/nedarimPlus'
+import { buildNedarimPostMessage } from '@/lib/payments/nedarimPlus'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   if (req.headers.get('content-type') !== 'application/json') {
@@ -16,13 +16,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Missing required payment params' }, { status: 400 })
   }
 
+  const nameParts = (parentName ?? '').trim().split(' ')
+  const firstName = nameParts[0] ?? ''
+  const lastName = nameParts.slice(1).join(' ')
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+
   try {
-    const config = buildNedarimPaymentUrl({
+    const payload = buildNedarimPostMessage({
       registrationId,
       amountILS,
-      parentName: parentName ?? 'הורה',
+      firstName,
+      lastName,
+      callbackUrl: `${appUrl}/api/payment/callback`,
     })
-    return NextResponse.json({ iframeUrl: config.iframeUrl })
+    return NextResponse.json({ payload })
   } catch (err) {
     console.error('[payment/init]', err)
     return NextResponse.json({ error: 'Failed to initialize payment' }, { status: 500 })

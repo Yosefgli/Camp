@@ -8,24 +8,8 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const rawBody = await req.text()
-
-  let payload: NedarimCallbackPayload
   try {
-    const contentType = req.headers.get('content-type') ?? ''
-    if (contentType.includes('application/json')) {
-      payload = JSON.parse(rawBody) as NedarimCallbackPayload
-    } else {
-      // Form-encoded callback
-      const params = new URLSearchParams(rawBody)
-      payload = Object.fromEntries(params.entries()) as NedarimCallbackPayload
-    }
-  } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-  }
-
-  try {
-    verifyNedarimCallback(payload, rawBody)
+    verifyNedarimCallback(req)
   } catch (err) {
     console.error('[payment/callback] verification failed', {
       ip: req.headers.get('x-forwarded-for'),
@@ -34,17 +18,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Verification failed' }, { status: 400 })
   }
 
-  // Extract registration ID from Zeout field (format: "{recordId}_{timestamp}")
-  const zeout = payload.zeout ?? payload.Zeout ?? ''
-  const registrationId = zeout.split('_')[0]
+  const rawBody = await req.text()
+  let payload: NedarimCallbackPayload
+  try {
+    const contentType = req.headers.get('content-type') ?? ''
+    if (contentType.includes('application/json')) {
+      payload = JSON.parse(rawBody) as NedarimCallbackPayload
+    } else {
+      const params = new URLSearchParams(rawBody)
+      payload = Object.fromEntries(params.entries()) as NedarimCallbackPayload
+    }
+  } catch {
+    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+  }
 
+  // Registration ID is passed via Param1 (as per Nedarim Plus docs)
+  const registrationId = payload.Param1 ?? payload.param1 ?? ''
   if (!registrationId) {
     return NextResponse.json({ error: 'Missing registration ID' }, { status: 400 })
   }
 
   const approved = isPaymentApproved(payload)
-  const transactionId = payload.transactionId ?? payload.TransactionId ?? ''
-  const amountStr = payload.sum ?? payload.Sum ?? '0'
+  const transactionId = payload.TransactionId ?? payload.transactionId ?? ''
+  const amountStr = payload.Amount ?? payload.amount ?? '0'
   const amountPaid = parseFloat(amountStr)
 
   try {
@@ -56,15 +52,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         amountPaid: isNaN(amountPaid) ? undefined : amountPaid,
       })
     } else {
+      const code = payload.StatusCode ?? payload.statusCode ?? ''
       await updatePaymentStatus({
         recordId: registrationId,
-        status: payload.statusCode === 'cancelled' ? 'cancelled' : 'failed',
-        failureReason: payload.statusCode,
+        status: code === 'cancelled' ? 'cancelled' : 'failed',
+        failureReason: code,
       })
     }
   } catch (err) {
     console.error('[payment/callback] Airtable update failed', err)
-    // Return 500 so Nedarim Plus can retry
     return NextResponse.json({ error: 'Failed to update record' }, { status: 500 })
   }
 
