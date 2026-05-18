@@ -27,7 +27,7 @@ export default function PaymentPageContent() {
         <p className="text-sm font-medium">{COPY.campName} — תשלום</p>
       </div>
 
-      <div className="max-w-xl mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="text-center mb-6">
           <div className="text-4xl mb-2">💳</div>
           <h1 className="text-xl font-bold text-primary-700">תשלום מאובטח</h1>

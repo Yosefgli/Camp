@@ -21,7 +21,7 @@ interface NedarimMessage {
 
 export default function PaymentIframe({ registrationId, amountILS, parentName }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [iframeHeight, setIframeHeight] = useState(500)
+  const [iframeHeight, setIframeHeight] = useState(800)
   const [payload, setPayload] = useState<NedarimPostMessagePayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -117,7 +117,7 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
         <span className="text-xl font-bold text-primary-700">{formatILS(amountILS)}</span>
       </div>
 
-      <div className="relative rounded-xl overflow-hidden border border-gray-200 shadow">
+      <div className="relative rounded-xl border border-gray-200 shadow">
         <iframe
           ref={iframeRef}
           src={NEDARIM_IFRAME_URL}
