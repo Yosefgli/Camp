@@ -66,6 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     })
   } catch (err) {
     console.error('[register]', err)
-    return NextResponse.json({ error: toUserMessage(err) }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: toUserMessage(err), debug: msg }, { status: 500 })
   }
 }
