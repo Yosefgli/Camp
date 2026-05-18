@@ -11,23 +11,25 @@ interface Props {
   parentName: string
 }
 
-interface NedarimMessage {
-  height?: number | string
-  StatusCode?: string
-  TransactionId?: string
-  Amount?: string
-  Error?: string
-  Ask?: string
+interface NedarimIncoming {
+  Name: string
+  Value?: unknown
+}
+
+interface TransactionResult {
+  Status: string
+  Message?: string
 }
 
 export default function PaymentIframe({ registrationId, amountILS, parentName }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [iframeHeight, setIframeHeight] = useState(800)
+  const [iframeHeight, setIframeHeight] = useState(0)
   const [payload, setPayload] = useState<NedarimPostMessagePayload | null>(null)
   const [loading, setLoading] = useState(true)
+  const [paying, setPaying] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [payError, setPayError] = useState<string | null>(null)
 
-  // Fetch PostMessage payload from server so ApiValid never touches client source
   useEffect(() => {
     async function initPayment() {
       try {
@@ -51,41 +53,25 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
     void initPayment()
   }, [registrationId, amountILS, parentName])
 
-  // Listen for height updates and payment results from Nedarim Plus iframe
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.origin !== 'https://www.matara.pro') return
 
-      let data: NedarimMessage
-      try {
-        data = typeof event.data === 'string'
-          ? (JSON.parse(event.data) as NedarimMessage)
-          : (event.data as NedarimMessage)
-      } catch {
+      const msg = event.data as NedarimIncoming
+      if (!msg || typeof msg.Name !== 'string') return
+
+      if (msg.Name === 'Height') {
+        setIframeHeight(Number(msg.Value) + 15)
         return
       }
 
-      if (data.Ask === 'SizeOf') {
-        const width = iframeRef.current?.offsetWidth ?? window.innerWidth
-        // Tell Nedarim Plus a compact height so the form renders with the submit
-        // button visible right after the fields, not stretched to fill the viewport.
-        const height = 500
-        iframeRef.current?.contentWindow?.postMessage(
-          JSON.stringify({ Width: width, Height: height }),
-          'https://www.matara.pro',
-        )
-        return
-      }
-
-      if (data.height) {
-        setIframeHeight(Number(data.height))
-      }
-
-      if (data.StatusCode !== undefined) {
-        if (data.StatusCode === '0') {
-          window.location.href = `/success?id=${registrationId}`
+      if (msg.Name === 'TransactionResponse') {
+        const result = msg.Value as TransactionResult
+        setPaying(false)
+        if (result?.Status === 'Error') {
+          setPayError(result.Message ?? 'התשלום נכשל. אנא נסו שנית.')
         } else {
-          setError('התשלום נכשל. אנא נסו שנית או פנו אלינו.')
+          window.location.href = `/success?id=${registrationId}`
         }
       }
     }
@@ -94,11 +80,19 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
     return () => window.removeEventListener('message', handleMessage)
   }, [registrationId])
 
-  // After iframe loads, send the payment data via PostMessage
   function handleIframeLoad() {
+    iframeRef.current?.contentWindow?.postMessage(
+      { Name: 'GetHeight' },
+      'https://www.matara.pro',
+    )
+  }
+
+  function handlePay() {
     if (!payload || !iframeRef.current?.contentWindow) return
+    setPayError(null)
+    setPaying(true)
     iframeRef.current.contentWindow.postMessage(
-      JSON.stringify(payload),
+      { Name: 'FinishTransaction2', Value: payload },
       'https://www.matara.pro',
     )
   }
@@ -130,19 +124,41 @@ export default function PaymentIframe({ registrationId, amountILS, parentName }:
         <span className="text-xl font-bold text-primary-700">{formatILS(amountILS)}</span>
       </div>
 
-      <div className="relative rounded-xl border border-gray-200 shadow">
+      <div className="rounded-xl border border-gray-200 shadow overflow-hidden">
         <iframe
           ref={iframeRef}
           src={NEDARIM_IFRAME_URL}
           title="עמוד תשלום"
           className="w-full"
-          style={{ height: `${iframeHeight}px`, border: 'none' }}
+          style={{ height: `${iframeHeight}px`, border: 'none', display: 'block' }}
+          scrolling="no"
           onLoad={handleIframeLoad}
         />
       </div>
 
+      {payError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
+          <p className="text-red-700 text-sm font-medium">{payError}</p>
+        </div>
+      )}
+
+      <button
+        onClick={handlePay}
+        disabled={paying || !payload}
+        className="w-full py-3 px-6 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors"
+      >
+        {paying ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            מבצע חיוב, נא להמתין...
+          </span>
+        ) : (
+          'בצע תשלום'
+        )}
+      </button>
+
       <p className="text-xs text-center text-gray-400">
-        התשלום מעובד בצורה מאובטחת על ידי נדרים פלוס 🔒
+        התשלום מעובד בצורה מאובטחת על ידי נדרים פלוס
       </p>
     </div>
   )
