@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
 import { useRegistration } from '@/context/RegistrationContext'
 import { COPY } from '@/lib/copy'
-import { calculateTotalCost, formatILS } from '@/lib/pricing'
+import { calculateTotalCost, formatILS, COUPON_PRICE } from '@/lib/pricing'
 import { toUserMessage } from '@/lib/errors'
 
 export default function Step5Signature() {
@@ -23,6 +23,7 @@ export default function Step5Signature() {
   const breakdown = calculateTotalCost(
     state.children.map((c) => ({ grade: c.grade, registrationPeriod: c.registrationPeriod })),
   )
+  const finalAmount = state.couponApplied ? COUPON_PRICE : breakdown.total
 
   function clearSig() {
     sigRef.current?.clear()
@@ -97,17 +98,19 @@ export default function Step5Signature() {
         return
       }
 
+      const resolvedAmount = state.couponApplied ? COUPON_PRICE : (data.totalAmount ?? breakdown.total)
+
       dispatch({
         type: 'SET_REGISTRATION_RESULT',
         registrationId: data.registrationId,
-        totalAmount: data.totalAmount ?? breakdown.total,
+        totalAmount: resolvedAmount,
       })
 
       // Navigate to payment or cash page
       if (state.summary.paymentMethod === 'credit') {
-        window.location.href = `/payment?id=${data.registrationId}&amount=${data.totalAmount ?? breakdown.total}&name=${encodeURIComponent((state.parent.fatherName ?? state.parent.motherName ?? ''))}`
+        window.location.href = `/payment?id=${data.registrationId}&amount=${resolvedAmount}&name=${encodeURIComponent((state.parent.fatherName ?? state.parent.motherName ?? ''))}`
       } else {
-        window.location.href = `/pending-cash?id=${data.registrationId}&amount=${data.totalAmount ?? breakdown.total}`
+        window.location.href = `/pending-cash?id=${data.registrationId}&amount=${resolvedAmount}`
       }
     } catch (err) {
       setSubmitError(toUserMessage(err))
@@ -125,7 +128,7 @@ export default function Step5Signature() {
         <p className="font-semibold text-primary-700 mb-1">סיכום הרשמה</p>
         <p>
           {state.children.length} ילד/ים · סה&quot;כ{' '}
-          <strong className="text-primary-700">{formatILS(breakdown.total)}</strong>
+          <strong className="text-primary-700">{formatILS(finalAmount)}</strong>
           {state.summary.paymentMethod === 'cash' ? ' · תשלום במזומן' : ' · תשלום באשראי'}
         </p>
       </div>

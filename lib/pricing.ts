@@ -8,6 +8,9 @@ export const PRICES = {
   DISCOUNT_RATE: 0.05,
 } as const
 
+export const COUPON_CODE = '770'
+export const COUPON_PRICE = 1
+
 export type ChildType = 'kan' | 'school'
 
 export function getChildType(grade: string): ChildType {

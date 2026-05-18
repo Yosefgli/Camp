@@ -52,6 +52,15 @@ export const COPY = {
     cashDesc: 'ניתן לשלם במזומן במשרד',
   },
 
+  coupon: {
+    label: 'קוד קופון',
+    placeholder: 'הזינו קוד קופון',
+    apply: 'החל',
+    applied: 'קוד קופון הוחל! המחיר עודכן ל-₪1',
+    invalid: 'קוד קופון לא תקין',
+    discount: 'קוד קופון (הנחה מיוחדת)',
+  },
+
   cashPending: {
     title: 'הרישום התקבל!',
     subtitle: 'ההרשמה תאושר לאחר הסדרת התשלום',

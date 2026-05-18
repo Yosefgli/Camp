@@ -4,3 +4,4 @@
 2026-05-18: תיקון SizeOf height — שינוי מ-window.innerHeight ל-500px קבוע כדי שכפתור שלם יוצג בצורה קומפקטית
  — תיקון PaymentIframe: פרוטוקול postMessage תוקן לפי תיעוד נדרים — GetHeight/FinishTransaction2/TransactionResponse, הוסף כפתור 'בצע תשלום' בדף ההורה
 2026-05-18 — תיקון PaymentIframe: פרוטוקול postMessage תוקן לפי תיעוד נדרים — GetHeight/FinishTransaction2/TransactionResponse, הוסף כפתור 'בצע תשלום' בדף ההורה
+- [2026-05-18] הוספת קוד קופון 770 בדף סיכום — מחיל הנחה לתשלום של ₪1 בלבד, כולל עדכון פירוט עלות ו-iframe נדרים פלוס

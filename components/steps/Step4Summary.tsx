@@ -1,10 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { summarySchema, type SummaryFormData } from '@/lib/validation/schemas'
 import { useRegistration } from '@/context/RegistrationContext'
-import { calculateTotalCost, getChildCost, formatILS } from '@/lib/pricing'
+import { calculateTotalCost, getChildCost, formatILS, COUPON_CODE, COUPON_PRICE } from '@/lib/pricing'
 import { COPY } from '@/lib/copy'
 
 export default function Step4Summary() {
@@ -24,6 +25,26 @@ export default function Step4Summary() {
   const breakdown = calculateTotalCost(
     state.children.map((c) => ({ grade: c.grade, registrationPeriod: c.registrationPeriod })),
   )
+
+  const [couponInput, setCouponInput] = useState('')
+  const [couponError, setCouponError] = useState(false)
+  const couponApplied = state.couponApplied
+  const finalTotal = couponApplied ? COUPON_PRICE : breakdown.total
+
+  function handleApplyCoupon() {
+    if (couponInput.trim() === COUPON_CODE) {
+      dispatch({ type: 'SET_COUPON', applied: true })
+      setCouponError(false)
+    } else {
+      setCouponError(true)
+    }
+  }
+
+  function handleRemoveCoupon() {
+    dispatch({ type: 'SET_COUPON', applied: false })
+    setCouponInput('')
+    setCouponError(false)
+  }
 
   function onSubmit(data: SummaryFormData) {
     dispatch({ type: 'SET_SUMMARY', summary: data })
@@ -64,10 +85,55 @@ export default function Step4Summary() {
             <span>− {formatILS(breakdown.discountAmount)}</span>
           </div>
         )}
+        {couponApplied && (
+          <div className="flex justify-between text-sm text-emerald-600">
+            <span>{COPY.coupon.discount}</span>
+            <span>− {formatILS(breakdown.total - COUPON_PRICE)}</span>
+          </div>
+        )}
         <div className="flex justify-between text-lg font-extrabold text-primary-700 pt-2 border-t border-gray-200">
           <span>סה"כ לתשלום</span>
-          <span>{formatILS(breakdown.total)}</span>
+          <span>{formatILS(finalTotal)}</span>
         </div>
+      </div>
+
+      {/* Coupon */}
+      <div className="form-card space-y-3">
+        <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wide">{COPY.coupon.label}</h3>
+        {couponApplied ? (
+          <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3">
+            <p className="text-sm text-emerald-700 font-medium">{COPY.coupon.applied}</p>
+            <button
+              type="button"
+              onClick={handleRemoveCoupon}
+              className="text-xs text-gray-400 hover:text-gray-600 underline mr-3"
+            >
+              הסר
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={couponInput}
+              onChange={(e) => { setCouponInput(e.target.value); setCouponError(false) }}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyCoupon())}
+              placeholder={COPY.coupon.placeholder}
+              className="input-field flex-1"
+              dir="ltr"
+            />
+            <button
+              type="button"
+              onClick={handleApplyCoupon}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap"
+            >
+              {COPY.coupon.apply}
+            </button>
+          </div>
+        )}
+        {couponError && (
+          <p className="text-sm text-red-600">{COPY.coupon.invalid}</p>
+        )}
       </div>
 
       {/* Notes */}

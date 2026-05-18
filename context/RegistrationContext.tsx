@@ -12,6 +12,7 @@ export interface RegistrationState {
   signature: Partial<SignatureFormData>
   registrationId: string | null
   totalAmount: number | null
+  couponApplied: boolean
 }
 
 type Action =
@@ -24,6 +25,7 @@ type Action =
   | { type: 'SET_SUMMARY'; summary: SummaryFormData }
   | { type: 'SET_SIGNATURE'; signature: SignatureFormData }
   | { type: 'SET_REGISTRATION_RESULT'; registrationId: string; totalAmount: number }
+  | { type: 'SET_COUPON'; applied: boolean }
   | { type: 'RESET' }
 
 const initialState: RegistrationState = {
@@ -35,6 +37,7 @@ const initialState: RegistrationState = {
   signature: {},
   registrationId: null,
   totalAmount: null,
+  couponApplied: false,
 }
 
 function reducer(state: RegistrationState, action: Action): RegistrationState {
@@ -60,6 +63,8 @@ function reducer(state: RegistrationState, action: Action): RegistrationState {
       return { ...state, signature: action.signature }
     case 'SET_REGISTRATION_RESULT':
       return { ...state, registrationId: action.registrationId, totalAmount: action.totalAmount }
+    case 'SET_COUPON':
+      return { ...state, couponApplied: action.applied }
     case 'RESET':
       return initialState
     default:
